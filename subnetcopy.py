@@ -17,6 +17,13 @@ class defSubMask():
     bits = []
     slashNot = []
 
+class outputAddresses():
+    network = []
+    broadcast = []
+    rangeValidHosts = []
+    lockedOctets = 0
+    blockSize = []
+
 
 #OCTET CREATION
 #x equals input from standard list
@@ -44,17 +51,20 @@ def classAssign(x):
         print("Class A")
         (defSubMask.value).extend(["255", "0", "0", "0"])
         octetCreate(defSubMask.value, defSubMask.octets)
-        defSubMask.slashNot = 8
+        defSubMask.slashNot.append(8)
+        outputAddresses.lockedOctets += 1
     elif x[0] > 127 and x[0] < 192:
         print("Class B")
         (defSubMask.value).extend(["255", "255", "0", "0"])
         octetCreate(defSubMask.value, defSubMask.octets)
-        defSubMask.slashNot = 16
+        defSubMask.slashNot.append(16)
+        outputAddresses.lockedOctets += 2
     elif x[0] > 191 and x[0] < 224:
         print("Class C")
         (defSubMask.value).extend(["255", "255", "255", "0"])
         octetCreate(defSubMask.value, defSubMask.octets)
-        defSubMask.slashNot = 24
+        defSubMask.slashNot.append(24)
+        outputAddresses.lockedOctets += 3
     elif x[0] == 127:
         print("Feedback Loop")
     else: 
@@ -105,9 +115,21 @@ def binaryConvert(x, y):
 #input x is from provSubMask_bits[0]
 def slashNot(x, y):
     slashNotValue = (int(x[0].count('1')))
-    print(slashNotValue)
-    y = (slashNotValue)
-    print(type(slashNotValue))
+    y.append(slashNotValue)
+
+
+#FINDS WHICH OCTET THE SUBNET WILL BEGIN ON AND DETERMINES
+#THE BLOCK SIZE
+#x provSubMask.slashNot
+#y defSubMask.slashNot
+def findOutputOctet(x, y):
+    if x < y:
+        print("Incorrect Subnet Mask")
+    else:
+        slashNotValue = x[0] - y[0]
+        addLockedOctet, tempBlockSize = divmod(slashNotValue, 8)
+        outputAddresses.lockedOctets = outputAddresses.lockedOctets + addLockedOctet
+        outputAddresses.blockSize = binaryValues[tempBlockSize - 1]
 
 
 octetCreate(provIPaddress.value, provIPaddress.octets)
@@ -118,12 +140,14 @@ binaryConvert(provIPaddress.octets, provIPaddress.bits)
 binaryConvert(provSubMask.octets, provSubMask.bits)
 binaryConvert(defSubMask.octets, defSubMask.bits)
 
-# print(provIPaddress.bits)
-# print(provSubMask.bits)
-# print(defSubMask.bits)
-
 slashNot(provSubMask.bits, provSubMask.slashNot)
-print(provSubMask.slashNot)
-print(defSubMask.slashNot)
 
+findOutputOctet(provSubMask.slashNot, defSubMask.slashNot)
 
+print('Locked octets = ', outputAddresses.lockedOctets)
+print('Block size = ', outputAddresses.blockSize)
+
+def networkAddress():
+    
+
+networkAddress()
