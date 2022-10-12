@@ -20,9 +20,11 @@ class defSubMask():
 class outputAddresses():
     network = []
     broadcast = []
-    rangeValidHosts = []
+    rangeValidHostsFirst = []
+    rangeValidHostsLast = []
     lockedOctets = 0
     blockSize = []
+    blockSizePlace =[]
 
 
 #OCTET CREATION
@@ -33,9 +35,10 @@ def octetCreate(x, y):
         print("Invalid: IP Length - {} octets".format(str(len(x))))
     else:
         for i in x:
-            if i < "0" or i > "255":
+            tempInt = int(i)
+            if tempInt < 0 or tempInt > 255:
                 invalidOctet = x.index(i) + 1
-                print("Invalid: Octet {}".format(invalidOctet))
+                print("Invalid: Octet {}".format(invalidOctet)) #GETTING ERROR WITH SINGLE DIGIT VALUES
                 y.clear()
                 break
             else:
@@ -44,6 +47,7 @@ def octetCreate(x, y):
 
 
 #CLASS ASSIGNMENT
+#x provIPaddress.octets
 def classAssign(x):
     if len(x) == 0:
         print("Unable to define class")
@@ -113,6 +117,7 @@ def binaryConvert(x, y):
 
 #SLASH NOTATION
 #input x is from provSubMask_bits[0]
+#y is output to slashNot list attribute
 def slashNot(x, y):
     slashNotValue = (int(x[0].count('1')))
     y.append(slashNotValue)
@@ -122,14 +127,80 @@ def slashNot(x, y):
 #THE BLOCK SIZE
 #x provSubMask.slashNot
 #y defSubMask.slashNot
-def findOutputOctet(x, y):
+def findBlockSize(x, y):
     if x < y:
         print("Incorrect Subnet Mask")
     else:
         slashNotValue = x[0] - y[0]
         addLockedOctet, tempBlockSize = divmod(slashNotValue, 8)
         outputAddresses.lockedOctets = outputAddresses.lockedOctets + addLockedOctet
-        outputAddresses.blockSize = binaryValues[tempBlockSize - 1]
+        outputAddresses.blockSizePlace = tempBlockSize
+        if tempBlockSize == 0:
+            outputAddresses.blockSize = 256 
+        else:
+            outputAddresses.blockSize = binaryValues[tempBlockSize - 1]
+
+
+#x provIPaddress.octets
+#z outputAddress.network
+def networkAddress(x, z):
+    for i in x:
+        if x.index(i) < outputAddresses.lockedOctets:
+            z.append(i)
+    #VARIABLE OCTET WILL CHANGE ACCORDING TO BLOCK SIZE AND CORRESPONDING OCTET FROM
+    #PROVIDED IP ADDRESS
+    #IF VARIABLE OCTET IN PROVIDED SUBMASK IS 0, IMMEDIATELY
+    #SET BLOCK SIZE 
+    # outputAddresses.network.append
+    variableOctet = (int(provIPaddress.octets[int(outputAddresses.lockedOctets)]/(outputAddresses.blockSize))) * outputAddresses.blockSize
+    z.append(variableOctet)
+    while True:
+        if len(z) != 4:
+            z.append(0)
+        if len(z) == 4:
+            break
+    outputAddresses.network = '.'.join(map(str, z)) 
+
+
+def broadcastAddress(x, z):
+    for i in x:
+        if x.index(i) < outputAddresses.lockedOctets:
+            z.append(i)
+    variableOctet = (((int(provIPaddress.octets[int(outputAddresses.lockedOctets)]/(outputAddresses.blockSize))) * outputAddresses.blockSize) + outputAddresses.blockSize) - 1
+    z.append(variableOctet)
+    while True:
+        if len(z) != 4:
+            z.append(255)
+        if len(z) == 4:
+            break
+    outputAddresses.broadcast = '.'.join(map(str, z)) 
+
+
+#x provIPaddress.octets
+#y outputAddresses.rangeValidHostsFirst
+#z outputAddresses.rangeValidHostsLast
+def rangeValidHosts(x, y, z):
+    for i in x:
+        if x.index(i) < outputAddresses.lockedOctets:
+            y.append(i)
+            z.append(i)
+    variableOctet = ((int(provIPaddress.octets[int(outputAddresses.lockedOctets)]/(outputAddresses.blockSize))) * outputAddresses.blockSize)
+    y.append(variableOctet)
+    z.append(variableOctet + (outputAddresses.blockSize - 1))
+    while True:
+        if len(y) != 4:
+            y.append(0)
+        if len(y) == 4:
+            break
+    while True:
+        if len(z) != 4:
+            z.append(255)
+        if len(z) == 4:
+            break
+    outputAddresses.rangeValidHostsFirst[3] =  outputAddresses.rangeValidHostsFirst[3] + 1
+    outputAddresses.rangeValidHostsLast[3] = outputAddresses.rangeValidHostsLast[3] - 1
+    outputAddresses.rangeValidHostsFirst = '.'.join(map(str, y)) 
+    outputAddresses.rangeValidHostsLast = '.'.join(map(str, z)) 
 
 
 octetCreate(provIPaddress.value, provIPaddress.octets)
@@ -142,12 +213,16 @@ binaryConvert(defSubMask.octets, defSubMask.bits)
 
 slashNot(provSubMask.bits, provSubMask.slashNot)
 
-findOutputOctet(provSubMask.slashNot, defSubMask.slashNot)
+findBlockSize(provSubMask.slashNot, defSubMask.slashNot)
 
-print('Locked octets = ', outputAddresses.lockedOctets)
-print('Block size = ', outputAddresses.blockSize)
+# print('Locked octets = ', outputAddresses.lockedOctets)
+print('Block size:', outputAddresses.blockSize)
 
-def networkAddress():
-    
+networkAddress(provIPaddress.octets, outputAddresses.network)
+broadcastAddress(provIPaddress.octets, outputAddresses.broadcast)
 
-networkAddress()
+rangeValidHosts(provIPaddress.octets, outputAddresses.rangeValidHostsFirst, outputAddresses.rangeValidHostsLast)
+
+print("Network Address:", outputAddresses.network)
+print("Broadcast Address:", outputAddresses.broadcast)
+print("Range of Valid Host Addresses: {0} - {1}".format(outputAddresses.rangeValidHostsFirst, outputAddresses.rangeValidHostsLast))
